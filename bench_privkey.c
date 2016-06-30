@@ -71,10 +71,12 @@ int main(int argc, char **argv) {
 
 
     // Visually inspect public key contents
+    // pubkey (u) = 04faf45a131fe316e7597817f532140d75bbc2b7dcd61835eabc29fa5d7f802551e5ae5b10cfc9970c0dcaa1ab7dc1b340bc5b3df687a5bce72667fd6ce6c36629
     printf("pubkey (u) = ");
     for (int i = 0; i < 65; i++) { printf("%02x", pubkey[i] & 0xFF); }
     printf("\n");
 
+    // pubkey (c) = 03faf45a131fe316e7597817f532140d75bbc2b7dcd61835eabc29fa5d7f802551
     printf("pubkey (c) = ");
     secp256k1_pubkey_uncomp_to_comp(pubkey);
     for (int i = 0; i < 33; i++) { printf("%02x", pubkey[i] & 0xFF); }

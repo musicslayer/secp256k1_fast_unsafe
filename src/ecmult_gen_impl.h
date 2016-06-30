@@ -123,31 +123,19 @@ static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx
 
 static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
     secp256k1_ge add;
-    secp256k1_ge_storage adds;
+    /* secp256k1_ge_storage adds; */
     secp256k1_scalar gnb;
     int bits;
-    int i, j;
-    memset(&adds, 0, sizeof(adds));
+    int /* i, */ j;
+    /* memset(&adds, 0, sizeof(adds)); */
     *r = ctx->initial;
     /* Blind scalar/point multiplication by computing (n-b)G + bG instead of nG. */
     secp256k1_scalar_add(&gnb, gn, &ctx->blind);
     add.infinity = 0;
     for (j = 0; j < 64; j++) {
         bits = secp256k1_scalar_get_bits(&gnb, j * 4, 4);
-        for (i = 0; i < 16; i++) {
-            /** This uses a conditional move to avoid any secret data in array indexes.
-             *   _Any_ use of secret indexes has been demonstrated to result in timing
-             *   sidechannels, even when the cache-line access patterns are uniform.
-             *  See also:
-             *   "A word of warning", CHES 2013 Rump Session, by Daniel J. Bernstein and Peter Schwabe
-             *    (https://cryptojedi.org/peter/data/chesrump-20130822.pdf) and
-             *   "Cache Attacks and Countermeasures: the Case of AES", RSA 2006,
-             *    by Dag Arne Osvik, Adi Shamir, and Eran Tromer
-             *    (http://www.tau.ac.il/~tromer/papers/cache.pdf)
-             */
-            secp256k1_ge_storage_cmov(&adds, &(*ctx->prec)[j][i], i == bits);
-        }
-        secp256k1_ge_from_storage(&add, &adds);
+        /* secp256k1_ge_storage_cmov(&adds, &(*ctx->prec)[j][bits], 1); */
+        secp256k1_ge_from_storage(&add, &(*ctx->prec)[j][bits]);
         secp256k1_gej_add_ge(r, r, &add);
     }
     bits = 0;
@@ -181,7 +169,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
         memcpy(keydata + 32, seed32, 32);
     }
     secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, seed32 ? 64 : 32);
-    memset(keydata, 0, sizeof(keydata));
+    /* memset(keydata, 0, sizeof(keydata)); */
     /* Retry for out of range results to achieve uniformity. */
     do {
         secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
@@ -198,7 +186,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
         retry |= secp256k1_scalar_is_zero(&b);
     } while (retry); /* This branch true is cryptographically unreachable. Requires sha256_hmac output > order. */
     secp256k1_rfc6979_hmac_sha256_finalize(&rng);
-    memset(nonce32, 0, 32);
+    /* memset(nonce32, 0, 32); */
     secp256k1_ecmult_gen(ctx, &gb, &b);
     secp256k1_scalar_negate(&b, &b);
     ctx->blind = b;
