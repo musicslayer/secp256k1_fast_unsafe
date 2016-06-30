@@ -136,11 +136,11 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
         bits = secp256k1_scalar_get_bits(&gnb, j * 4, 4);
         /* secp256k1_ge_storage_cmov(&adds, &(*ctx->prec)[j][bits], 1); */
         secp256k1_ge_from_storage(&add, &(*ctx->prec)[j][bits]);
-        secp256k1_gej_add_ge(r, r, &add);
+        secp256k1_gej_add_ge_var(r, r, &add, NULL);
     }
-    bits = 0;
-    secp256k1_ge_clear(&add);
-    secp256k1_scalar_clear(&gnb);
+    /* bits = 0; */
+    /* secp256k1_ge_clear(&add); */
+    /* secp256k1_scalar_clear(&gnb); */
 }
 
 /* Setup blinding values for secp256k1_ecmult_gen. */
