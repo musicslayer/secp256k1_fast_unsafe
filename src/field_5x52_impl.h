@@ -209,7 +209,7 @@ static int secp256k1_fe_normalizes_to_zero_var(secp256k1_fe *r) {
     z1 = z0 ^ 0x1000003D0ULL;
 
     /* Fast return path should catch the majority of cases */
-    if ((z0 != 0ULL) & (z1 != 0xFFFFFFFFFFFFFULL)) {
+    if ((z0 != 0ULL) && (z1 != 0xFFFFFFFFFFFFFULL)) {
         return 0;
     }
 
@@ -247,7 +247,14 @@ SECP256K1_INLINE static int secp256k1_fe_is_zero(const secp256k1_fe *a) {
     VERIFY_CHECK(a->normalized);
     secp256k1_fe_verify(a);
 #endif
-    return (t[0] | t[1] | t[2] | t[3] | t[4]) == 0;
+    return (
+        t[0] == 0
+     && t[1] == 0
+     && t[2] == 0
+     && t[3] == 0
+     && t[4] == 0
+    );
+    /* return (t[0] | t[1] | t[2] | t[3] | t[4]) == 0; */
 }
 
 SECP256K1_INLINE static int secp256k1_fe_is_odd(const secp256k1_fe *a) {
@@ -450,5 +457,9 @@ static SECP256K1_INLINE void secp256k1_fe_from_storage(secp256k1_fe *r, const se
     r->normalized = 1;
 #endif
 }
+
+/* Force callers to use variable runtime versions */
+#define secp256k1_fe_normalize(r)           secp256k1_fe_normalize_var(r)
+#define secp256k1_fe_normalizes_to_zero(r)  secp256k1_fe_normalizes_to_zero_var(r)
 
 #endif
