@@ -405,6 +405,12 @@ static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a) {
 }
 
 static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag) {
+#ifdef VERIFY
+    if (a->magnitude > r->magnitude) {
+        r->magnitude = a->magnitude;
+    }
+    r->normalized &= a->normalized;
+#endif
     if ( !flag ) { return; }
 
     r->n[0] = a->n[0];
@@ -412,12 +418,6 @@ static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_
     r->n[2] = a->n[2];
     r->n[3] = a->n[3];
     r->n[4] = a->n[4];
-#ifdef VERIFY
-    if (a->magnitude > r->magnitude) {
-        r->magnitude = a->magnitude;
-    }
-    r->normalized &= a->normalized;
-#endif
 }
 
 static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, const secp256k1_fe_storage *a, int flag) {
