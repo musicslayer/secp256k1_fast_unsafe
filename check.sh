@@ -1,1 +1,1 @@
-make && time ./tests 16
+make && time nice -n -10 ./tests 16

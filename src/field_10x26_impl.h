@@ -1153,7 +1153,6 @@ static SECP256K1_INLINE void secp256k1_fe_from_storage(secp256k1_fe *r, const se
 #endif
 }
 
-
 /* Force callers to use variable runtime versions */
 #define secp256k1_fe_normalize(r)           secp256k1_fe_normalize_var(r)
 #define secp256k1_fe_normalizes_to_zero(r)  secp256k1_fe_normalizes_to_zero_var(r)
