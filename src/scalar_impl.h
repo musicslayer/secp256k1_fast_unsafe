@@ -338,7 +338,7 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
 
 
 
-/* Make sure we always use the variable time scalar inverse */
+/* Force callers to use variable runtime versions */
 #define secp256k1_scalar_inverse(r, x) secp256k1_scalar_inverse_var(r, x)
 
 #endif

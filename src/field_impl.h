@@ -245,6 +245,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     */
     if ( secp256k1_fe_is_zero(&c) ) {
         /* Garbage in, garbage out */
+        *r = *a;
         return;
     }
 
