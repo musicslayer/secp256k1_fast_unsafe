@@ -52,6 +52,26 @@ static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx
         secp256k1_gej_add_ge_var(&nums_gej, &nums_gej, &secp256k1_ge_const_g, NULL);
     }
 
+    /* prec is calculated as a 1024 element array but will be treated as prec[64][16].                          */
+    /* We shall call the first index the "window" index:                                                        */
+    /*   It corresponds to the 4-bit "window" position of the input scalar that we're multiplying against.      */
+    /* The second index is the "bits" index:                                                                    */
+    /*   It corresponds to the actual raw bits shifted off the scalar.  We use 4-bit windows, so 2^4 values.    */
+    /* This gives us prec[window][bits].                                                                        */
+    /*                                                                                                          */
+    /* Each row, prec[window][*] starts with (16^window * G) and each column is the previous + G.               */
+    /* This means we can extract 4 bits at a time from the scalar, look up the element associated with          */
+    /*   those bits at that window position, then add it to our accumulated result.                             */
+    /* This gives us: result = sum(prec[window][shift(scalar, 4)], window = 0 to 63)                            */
+    /*                                                                                                          */
+    /* Furthermore, each window has (2^window * blind) added to it.                                             */
+    /* This is probably to ensure that there won't be any point at infinity values in the prec table.           */
+    /* This also has the unfortunate side effect of:                                                            */
+    /*   1) No additions can be skipped (X + inf = X, but now we have no points at infinity)                    */
+    /*   2) Each row in the prec table shifts the result by 2^window * blind                                    */
+    /* Because of #2, the final row of the table uses (1-2^window) * blind:                                     */
+    /*   blind * (1b + 10b + ... + 10..0b + -11..1b) = blind * 0                                                */
+
     /* compute prec. */
     {
         secp256k1_gej precj[1024]; /* Jacobian versions of prec. */
@@ -127,20 +147,41 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     secp256k1_scalar gnb;
     int bits;
     int /* i, */ j;
+
     /* memset(&adds, 0, sizeof(adds)); */
     *r = ctx->initial;
+
     /* Blind scalar/point multiplication by computing (n-b)G + bG instead of nG. */
     secp256k1_scalar_add(&gnb, gn, &ctx->blind);
     add.infinity = 0;
+
     for (j = 0; j < 64; j++) {
         bits = secp256k1_scalar_get_bits(&gnb, j * 4, 4);
-        /* secp256k1_ge_storage_cmov(&adds, &(*ctx->prec)[j][bits], 1); */
+#if 0
+        for (i = 0; i < 16; i++) {
+            /** This uses a conditional move to avoid any secret data in array indexes.
+             *   _Any_ use of secret indexes has been demonstrated to result in timing
+             *   sidechannels, even when the cache-line access patterns are uniform.
+             *  See also:
+             *   "A word of warning", CHES 2013 Rump Session, by Daniel J. Bernstein and Peter Schwabe
+             *    (https://cryptojedi.org/peter/data/chesrump-20130822.pdf) and
+             *   "Cache Attacks and Countermeasures: the Case of AES", RSA 2006,
+             *    by Dag Arne Osvik, Adi Shamir, and Eran Tromer
+             *    (http://www.tau.ac.il/~tromer/papers/cache.pdf)
+             */
+            secp256k1_ge_storage_cmov(&adds, &(*ctx->prec)[j][i], i == bits);
+        }
+        secp256k1_ge_from_storage(&add, &adds);
+#endif
         secp256k1_ge_from_storage(&add, &(*ctx->prec)[j][bits]);
-        secp256k1_gej_add_ge_var(r, r, &add, NULL);
+        secp256k1_gej_add_ge(r, r, &add);
     }
-    /* bits = 0; */
-    /* secp256k1_ge_clear(&add); */
-    /* secp256k1_scalar_clear(&gnb); */
+
+#if 0
+    bits = 0;
+    secp256k1_ge_clear(&add);
+    secp256k1_scalar_clear(&gnb);
+#endif
 }
 
 /* Setup blinding values for secp256k1_ecmult_gen. */

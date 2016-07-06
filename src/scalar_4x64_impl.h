@@ -145,13 +145,7 @@ static void secp256k1_scalar_get_b32(unsigned char *bin, const secp256k1_scalar*
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_is_zero(const secp256k1_scalar *a) {
-    return (
-        a->d[0] == 0
-     && a->d[1] == 0
-     && a->d[2] == 0
-     && a->d[3] == 0
-    );
-    /* return (a->d[0] | a->d[1] | a->d[2] | a->d[3]) == 0; */
+    return (a->d[0] | a->d[1] | a->d[2] | a->d[3]) == 0;
 }
 
 static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar *a) {
@@ -165,13 +159,7 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_is_one(const secp256k1_scalar *a) {
-    return (
-        a->d[0] == 1
-     && a->d[1] == 0
-     && a->d[2] == 0
-     && a->d[3] == 0
-    );
-    /* return ((a->d[0] ^ 1) | a->d[1] | a->d[2] | a->d[3]) == 0; */
+    return ((a->d[0] ^ 1) | a->d[1] | a->d[2] | a->d[3]) == 0;
 }
 
 static int secp256k1_scalar_is_high(const secp256k1_scalar *a) {
