@@ -8,6 +8,7 @@
 // This is a bit unconventional... but hey, this is a benchmark harness, not production code
 #include "libsecp256k1-config.h"
 #include "secp256k1.c"
+#include "secp256k1_batch_impl.h"
 
 
 // Takes a 32 byte private key and returns a 65 or 33 byte uncompressed public key
@@ -64,7 +65,7 @@ int main(int argc, char **argv) {
     };
 
     unsigned char pubkey[65];
-    secp256k1_privkey_to_pubkey(ctx, privkey, pubkey, 0);
+    secp256k1_ec_pubkey_create_serialized(ctx, pubkey, privkey, 0);
     if ( memcmp(expected, pubkey, 65) == 0 ) {
         printf("pubkey quick test passed\n");
     } else {
@@ -72,7 +73,6 @@ int main(int argc, char **argv) {
         return 1;
     }
     printf("\n");
-
 
 
     // Actual benchmark loop
