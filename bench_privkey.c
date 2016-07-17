@@ -5,24 +5,12 @@
 #include <string.h>
 #include "timer.h"
 
-// This is a bit unconventional... but hey, this is a benchmark harness, not production code
+#define HAVE_CONFIG_H
 #include "libsecp256k1-config.h"
 #include "secp256k1.c"
+#include "ecmult_big_impl.h"
 #include "secp256k1_batch_impl.h"
 
-
-// Takes a 32 byte private key and returns a 65 or 33 byte uncompressed public key
-void secp256k1_privkey_to_pubkey(secp256k1_context *ctx, unsigned char *privkey, unsigned char *pubkey, unsigned int compressed) {
-    secp256k1_pubkey tmp;
-    size_t pubkey_len = 65;
-    unsigned int pubkey_type = ( compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED );
-
-    // Convert the private key to an internal public key representation
-    if ( !secp256k1_ec_pubkey_create(ctx, &tmp, privkey) ) { return; }
-
-    // Convert the internal public key representation to a serialized byte format
-    secp256k1_ec_pubkey_serialize(ctx, pubkey, &pubkey_len, &tmp, pubkey_type);
-}
 
 
 // Hackishly converts an uncompressed public key to a compressed public key
@@ -37,6 +25,9 @@ int main(int argc, char **argv) {
     // Number of iterations as 2^N
     int iter_exponent = ( argc > 1 ? atoi(argv[1]) : 18 );
     int iterations = (1 << iter_exponent);
+
+    int bmul_size = ( argc > 2 ? atoi(argv[2]) : 16 );
+
     struct timespec clock_start;
     double clock_diff;
 
@@ -45,9 +36,14 @@ int main(int argc, char **argv) {
     clock_start = get_clock();
     secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN);
     clock_diff = get_clockdiff_s(clock_start);
-    printf("context = %12.8f\n", clock_diff);
-    printf("\n");
+    printf("main context = %12.8f\n", clock_diff);
 
+    // Initializing secp256k1_ecmult_big context
+    clock_start = get_clock();
+    secp256k1_ecmult_big_context* bmul = secp256k1_ecmult_big_create(ctx, bmul_size);
+    clock_diff = get_clockdiff_s(clock_start);
+    printf("bmul context = %12.8f\n", clock_diff);
+    printf("\n");
 
     // Do a quick result verification
     srand(0xDEADBEEF);
@@ -65,7 +61,10 @@ int main(int argc, char **argv) {
     };
 
     unsigned char pubkey[65];
-    secp256k1_ec_pubkey_create_serialized(ctx, pubkey, privkey, 0);
+    if ( !secp256k1_ec_pubkey_create_serialized(ctx, pubkey, privkey, 0) ) {
+        printf("test pubkey creation failed\n");
+    }
+
     if ( memcmp(expected, pubkey, 65) == 0 ) {
         printf("pubkey quick test passed\n");
     } else {
@@ -77,11 +76,15 @@ int main(int argc, char **argv) {
 
     // Actual benchmark loop
     printf("iterations = 2^%d (%d)\n", iter_exponent, iterations);
+    printf("bmul size  = %d\n", bmul_size);
     clock_start = get_clock();
     for (size_t iter = 0; iter < iterations; iter++) {
         // Randomize a byte to ensure differing code paths
         privkey[ iter % 32 ] = rand() & 0xFF;
-        secp256k1_privkey_to_pubkey(ctx, privkey, pubkey, 0);
+        if ( !secp256k1_ec_pubkey_create_serialized(ctx, privkey, pubkey, 0) ) {
+            printf("key creation returned zero result");
+            break;
+        }
     }
     clock_diff = get_clockdiff_s(clock_start);
 

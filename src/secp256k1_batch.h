@@ -8,8 +8,6 @@
 #define _SECP256K1_BATCH_H_
 
 #include <stddef.h>
-#include "scalar.h"
-#include "group.h"
 #include "secp256k1.c"
 
 
