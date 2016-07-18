@@ -53,8 +53,8 @@ secp256k1_ecmult_big_context* secp256k1_ecmult_big_create(const secp256k1_contex
 
     /**************** Allocate Struct Members *****************/
     rtn = (secp256k1_ecmult_big_context *)checked_malloc(&ctx->error_callback, sizeof(secp256k1_ecmult_big_context));
-    *(unsigned int *)(&bits) = bits;
-    *(unsigned int *)(&windows) = windows;
+    *(unsigned int *)(&rtn->bits) = bits;
+    *(unsigned int *)(&rtn->windows) = windows;
 
     /* An array of secp256k1_ge_storage pointers, one for each window. */
     rtn->precomp = (secp256k1_ge_storage **)checked_malloc(&ctx->error_callback, sizeof(secp256k1_ge_storage *) * windows);

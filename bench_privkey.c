@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     int iter_exponent = ( argc > 1 ? atoi(argv[1]) : 18 );
     int iterations = (1 << iter_exponent);
 
-    int bmul_size = ( argc > 2 ? atoi(argv[2]) : 16 );
+    unsigned int bmul_size = ( argc > 2 ? atoi(argv[2]) : 16 );
 
     struct timespec clock_start;
     double clock_diff;
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     };
 
     unsigned char pubkey[65];
-    if ( !secp256k1_ec_pubkey_create_serialized(ctx, pubkey, privkey, 0) ) {
+    if ( !secp256k1_ec_pubkey_create_serialized(ctx, NULL, pubkey, privkey, 0) ) {
         printf("test pubkey creation failed\n");
     }
 
@@ -76,12 +76,12 @@ int main(int argc, char **argv) {
 
     // Actual benchmark loop
     printf("iterations = 2^%d (%d)\n", iter_exponent, iterations);
-    printf("bmul size  = %d\n", bmul_size);
+    printf("bmul size  = %u\n", bmul_size);
     clock_start = get_clock();
     for (size_t iter = 0; iter < iterations; iter++) {
         // Randomize a byte to ensure differing code paths
         privkey[ iter % 32 ] = rand() & 0xFF;
-        if ( !secp256k1_ec_pubkey_create_serialized(ctx, privkey, pubkey, 0) ) {
+        if ( !secp256k1_ec_pubkey_create_serialized(ctx, NULL, privkey, pubkey, 0) ) {
             printf("key creation returned zero result");
             break;
         }

@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include "secp256k1.c"
 #include "secp256k1_batch.h"
+#include "ecmult_big.h"
 
 
 /* Scratch space for secp256k1_ec_pubkey_create_batch's temporary results.  */
@@ -57,7 +58,7 @@ void secp256k1_scratch_destroy(secp256k1_scratch* scr) {
 
 
 
-size_t secp256k1_ec_pubkey_create_serialized(const secp256k1_context* ctx, /* const secp256k1_fastmul fmul, */ unsigned char *pubkey, const unsigned char *privkey, const unsigned int compressed) {
+size_t secp256k1_ec_pubkey_create_serialized(const secp256k1_context *ctx, const secp256k1_ecmult_big_context *bmul, unsigned char *pubkey, const unsigned char *privkey, const unsigned int compressed) {
     secp256k1_scalar s_privkey;
     secp256k1_gej gej_pubkey;
     secp256k1_ge ge_pubkey;
@@ -87,16 +88,13 @@ size_t secp256k1_ec_pubkey_create_serialized(const secp256k1_context* ctx, /* co
 
 
     /* Multiply the private key by the generator point. */
-#if 0
-    if ( fmul != NULL ) {
+    if ( bmul != NULL ) {
         /* Multiplication using larger, faster, precomputed tables. */
+        secp256k1_ecmult_big(bmul, &gej_pubkey, &s_privkey);
     } else {
-#endif
         /* Multiplication using default implementation. */
         secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &gej_pubkey, &s_privkey);
-#if 0
     }
-#endif
 
     /* If the result is the point at infinity, the pubkey is invalid. */
     if ( gej_pubkey.infinity ) { return out_keys; }
@@ -119,7 +117,7 @@ size_t secp256k1_ec_pubkey_create_serialized(const secp256k1_context* ctx, /* co
 
 
 
-size_t secp256k1_ec_pubkey_create_serialized_batch(const secp256k1_context* ctx, /* const secp256k1_fastmul fmul, */ secp256k1_scratch *scr, unsigned char *pubkeys, const unsigned char *privkeys, const size_t key_count, const unsigned int compressed) {
+size_t secp256k1_ec_pubkey_create_serialized_batch(const secp256k1_context *ctx, const secp256k1_ecmult_big_context *bmul, secp256k1_scratch *scr, unsigned char *pubkeys, const unsigned char *privkeys, const size_t key_count, const unsigned int compressed) {
     secp256k1_scalar s_privkey;
     secp256k1_ge ge_pubkey;
     size_t i, dummy, out_keys;
@@ -160,16 +158,13 @@ size_t secp256k1_ec_pubkey_create_serialized_batch(const secp256k1_context* ctx,
 
 
         /* Multiply the private key by the generator point. */
-    #if 0
-        if ( fmul != NULL ) {
+        if ( bmul != NULL ) {
             /* Multiplication using larger, faster, precomputed tables. */
+            secp256k1_ecmult_big(bmul, &(scr->gej[i]), &s_privkey);
         } else {
-    #endif
             /* Multiplication using default implementation. */
             secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &(scr->gej[i]), &s_privkey);
-    #if 0
         }
-    #endif
 
         /* If the result is the point at infinity, the pubkey is invalid. */
         if ( scr->gej[i].infinity ) { continue; }

@@ -9,6 +9,7 @@
 
 #include <stddef.h>
 #include "secp256k1.c"
+#include "ecmult_big.h"
 
 
 /** Opaque data structure that holds scratch memory for usage in batch computations. */
@@ -42,23 +43,25 @@ SECP256K1_API void secp256k1_scratch_destroy(
  *
  *  Returns: number of public keys created, invalid keys will be all \0 bytes
  *  Args:   ctx:        pointer to a context object, initialized for signing (cannot be NULL)
+ *          bmul:       pointer to an optional ecmult big context for faster ecmult computations
  *  Out:    pubkey:     pointer to an array sized to hold the serialized pubkey (33 or 65 bytes, cannot be NULL)
  *  In:     privkey:    pointer to a 32-byte private key (cannot be NULL)
  *          compressed: compression flag, 0 for uncompressed output (65 bytes), 1 for compressed (33 bytes)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT size_t secp256k1_ec_pubkey_create_serialized(
-    const secp256k1_context* ctx,
-    /* TODO: optional const secp256k1_ecmult_big context, use fast if available, otherwise regular */
+    const secp256k1_context *ctx,
+    const secp256k1_ecmult_big_context *bmul,
     unsigned char *pubkey,
     const unsigned char *privkey,
     const unsigned int compressed
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
 
 /** Creates and serializes a multiple public keys from a multiple private keys.
  *
  *  Returns: number of public keys created, invalid keys will be all \0 bytes
  *  Args:   ctx:        pointer to a context object, initialized for signing (cannot be NULL)
+ *          bmul:       pointer to an optional ecmult big context for faster ecmult computations
  *          scr:        pointer to a scratch object, initialized to hold at least key_count items (cannot be NULL)
  *  Out:    pubkeys:    pointer to an array sized to hold at least key_count serialized pubkeys (33 or 65 bytes each, cannot be NULL)
  *  In:     privkeys:   pointer to key_count 32-byte private keys (cannot be NULL)
@@ -66,14 +69,14 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT size_t secp256k1_ec_pubkey_create_ser
  *          compressed: compression flag, 0 for uncompressed output (65 bytes), 1 for compressed (33 bytes)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT size_t secp256k1_ec_pubkey_create_serialized_batch(
-    const secp256k1_context* ctx,
-    /* TODO: optional const secp256k1_ecmult_big context, use fast if available, otherwise regular */
+    const secp256k1_context *ctx,
+    const secp256k1_ecmult_big_context *bmul,
     secp256k1_scratch* scr,
     unsigned char *pubkeys,
     const unsigned char *privkeys,
     const size_t key_count,
     const unsigned int compressed
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
 
 
 #endif
