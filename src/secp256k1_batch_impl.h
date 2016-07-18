@@ -13,15 +13,15 @@
 #include "ecmult_big.h"
 
 
-/* Scratch space for secp256k1_ec_pubkey_create_batch's temporary results.  */
+/* Scratch space for secp256k1_ec_pubkey_create_batch's temporary results. */
 struct secp256k1_scratch_struct {
-    /* Maximum number of elements this scratch space can hold.  */
+    /* Maximum number of elements this scratch space can hold. */
     const size_t size;
 
     /* Output from individual secp256k1_ecmult_gen. */
     secp256k1_gej *gej;
 
-    /* Input and output buffers for secp256k1_fe_inv_all_var.   */
+    /* Input and output buffers for secp256k1_fe_inv_all_var. */
     secp256k1_fe  *fe_in;
     secp256k1_fe  *fe_out;
 };
@@ -74,8 +74,8 @@ size_t secp256k1_ec_pubkey_create_serialized(const secp256k1_context *ctx, const
     ARG_CHECK(privkey != NULL);
 
 
-    /* Blank all of the output, regardless of what happens. */
-    /* This marks all output keys as invalid until successfully created. */
+    /* Blank all of the output, regardless of what happens.                 */
+    /* This marks all output keys as invalid until successfully created.    */
     memset(pubkey, 0, sizeof(*pubkey) * pubkey_size);
 
     out_keys = 0;
@@ -100,11 +100,10 @@ size_t secp256k1_ec_pubkey_create_serialized(const secp256k1_context *ctx, const
     if ( gej_pubkey.infinity ) { return out_keys; }
 
 
-    /* Convert the Jacobian public key to affine coordinates. */
-    /* This computes the pubkey's Z coordinate inverse which is very slow, */
+    /* Convert the Jacobian public key to affine coordinates.               */
+    /* This computes the pubkey's Z coordinate inverse which is very slow,  */
     /*   batching key generation consolidates multiple inversions into one. */
     secp256k1_ge_set_gej(&ge_pubkey, &gej_pubkey);
-
 
     /* Serialize the public key into the requested format. */
     secp256k1_eckey_pubkey_serialize(&ge_pubkey, pubkey, &dummy, compressed);
@@ -139,8 +138,8 @@ size_t secp256k1_ec_pubkey_create_serialized_batch(const secp256k1_context *ctx,
     ARG_CHECK(key_count <= scr->size);
 
 
-    /* Blank all of the output, regardless of what happens. */
-    /* This marks all output keys as invalid until successfully created. */
+    /* Blank all of the output, regardless of what happens.                 */
+    /* This marks all output keys as invalid until successfully created.    */
     memset(pubkeys, 0, sizeof(*pubkeys) * pubkey_size * key_count);
 
     out_keys = 0;
@@ -176,9 +175,9 @@ size_t secp256k1_ec_pubkey_create_serialized_batch(const secp256k1_context *ctx,
     }
 
 
-    /* Assuming we have at least one non-infinite Jacobian pubkey.  */
+    /* Assuming we have at least one non-infinite Jacobian pubkey. */
     if ( out_keys > 0 ) {
-        /* Invert all Jacobian public keys' Z values in one go.     */
+        /* Invert all Jacobian public keys' Z values in one go. */
         secp256k1_fe_inv_all_var(out_keys, scr->fe_out, scr->fe_in);
     }
 

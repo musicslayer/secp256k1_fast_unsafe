@@ -7,6 +7,7 @@
 #ifndef _SECP256K1_ECMULT_BIG_IMPL_H_
 #define _SECP256K1_ECMULT_BIG_IMPL_H_
 
+
 #include <stddef.h>
 #include <stdint.h>
 #include "secp256k1.c"
@@ -27,12 +28,12 @@ secp256k1_ecmult_big_context* secp256k1_ecmult_big_create(const secp256k1_contex
 
     secp256k1_fe  fe_zinv;
     secp256k1_ge  ge_temp;
-    secp256k1_ge  ge_one = secp256k1_ge_const_g;
+    secp256k1_ge  ge_window_one = secp256k1_ge_const_g;
     secp256k1_gej gej_window_base;
     secp256k1_ecmult_big_context *rtn;
 
 
-    /* No point using fewer bits than the default implementation.   */
+    /* No point using fewer bits than the default implementation. */
     ARG_CHECK(bits >=  4);
 
     /* Each signed digit result must fit in a int64_t, we can't be larger.      */
@@ -73,7 +74,7 @@ secp256k1_ecmult_big_context* secp256k1_ecmult_big_create(const secp256k1_contex
 
 
     /************ Precomputed Table Initialization ************/
-    secp256k1_gej_set_ge(&gej_window_base, &ge_one);
+    secp256k1_gej_set_ge(&gej_window_base, &ge_window_one);
 
     /* This is the same for all windows.    */
     secp256k1_fe_set_int(&(rtn->z_ratio[0]), 0);
@@ -83,11 +84,15 @@ secp256k1_ecmult_big_context* secp256k1_ecmult_big_create(const secp256k1_contex
         /* The last row is a bit smaller, only extending to include the 257th bit. */
         window_size = ( row == windows - 1 ? (1 << (256 % bits)) : (1 << (bits - 1)) );
 
-        /* The base element of each row is 2^bits times the previous row's base.    */
+        /* The base element of each row is 2^bits times the previous row's base. */
         if ( row > 0 ) {
             for ( i = 0; i < bits; i++ ) { secp256k1_gej_double_var(&gej_window_base, &gej_window_base, NULL); }
         }
         rtn->gej_temp[0] = gej_window_base;
+
+        /* The base element is also our "one" value for this row.   */
+        /* If we are at offset 2^X, adding "one" should add 2^X.    */
+        secp256k1_ge_set_gej(&ge_window_one, &gej_window_base);
 
 
         /* Repeated + 1s to fill the rest of the row.   */
@@ -101,7 +106,7 @@ secp256k1_ecmult_big_context* secp256k1_ecmult_big_create(const secp256k1_contex
         /* gej_temp     a           b           c       */
         /* z_ratio     NaN      (a^-1)*b    (b^-1)*c    */
         for ( i = 1; i < window_size; i++ ) {
-            secp256k1_gej_add_ge_var(&(rtn->gej_temp[i]), &(rtn->gej_temp[i-1]), &ge_one, &(rtn->z_ratio[i]));
+            secp256k1_gej_add_ge_var(&(rtn->gej_temp[i]), &(rtn->gej_temp[i-1]), &ge_window_one, &(rtn->z_ratio[i]));
         }
 
 
@@ -118,7 +123,7 @@ secp256k1_ecmult_big_context* secp256k1_ecmult_big_create(const secp256k1_contex
         for ( ; i > 0; i-- ) {
             /* fe_zinv = (gej_temp[i].z)^-1                 */
             /* (gej_temp[i-1].z)^-1 = z_ratio[i] * fe_zinv  */
-            secp256k1_fe_mul(&fe_zinv, &(rtn->z_ratio[i]), &fe_zinv);
+            secp256k1_fe_mul(&fe_zinv, &fe_zinv, &(rtn->z_ratio[i]));
             /* fe_zinv = (gej_temp[i-1].z)^-1               */
 
             secp256k1_ge_set_gej_zinv(&ge_temp, &(rtn->gej_temp[i-1]), &fe_zinv);
@@ -148,7 +153,7 @@ void secp256k1_ecmult_big_destroy(secp256k1_ecmult_big_context* bmul) {
     *(unsigned int *)(&bmul->windows) = 0;
 
     if ( bmul->precomp != NULL ) {
-        /* This was allocated with a single malloc, it will be freed with a single free.    */
+        /* This was allocated with a single malloc, it will be freed with a single free. */
         if ( bmul->precomp[0] != NULL ) { free(bmul->precomp[0]); }
 
         free(bmul->precomp);
@@ -201,8 +206,8 @@ uint64_t secp256k1_scalar_shr_any(secp256k1_scalar *s, unsigned int n) {
 static int64_t secp256k1_scalar_sdigit_single(secp256k1_scalar *s, unsigned int w) {
     int64_t sdigit = 0;
 
-    /* Represents a 1 bit in the next window's least significant bit.   */
-    /* VERIFY_CHECK verifies that (1 << w) won't touch int64_t's sign bit. */
+    /* Represents a 1 bit in the next window's least significant bit.       */
+    /* VERIFY_CHECK verifies that (1 << w) won't touch int64_t's sign bit.  */
     int64_t overflow_bit = (int64_t)(1 << w);
 
     /* Represents the maximum positive value in a w-bit precomp table.  */
@@ -271,28 +276,29 @@ static void secp256k1_ecmult_big(const secp256k1_ecmult_big_context* bmul, secp2
     int64_t sdigit = 0;
     secp256k1_ge window_value;
 
-    /* Copy of the input scalar which secp256k1_scalar_sdigit_single will destroy.  */
+    /* Copy of the input scalar which secp256k1_scalar_sdigit_single will destroy. */
     secp256k1_scalar privkey = *a;
 
     VERIFY_CHECK(bmul != NULL);
+    VERIFY_CHECK(bmul->bits > 0);
     VERIFY_CHECK(r != NULL);
     VERIFY_CHECK(a != NULL);
 
     /* Until we hit a non-zero window, the value of r is undefined. */
-    r->infinity = 1;
+    secp256k1_gej_set_infinity(r);
 
-    /* If the privkey is zero, bail.    */
+    /* If the privkey is zero, bail. */
     if ( secp256k1_scalar_is_zero(&privkey) ) { return; }
 
 
-    /* Incrementally convert the privkey into signed digit form, one window at a time.  */
+    /* Incrementally convert the privkey into signed digit form, one window at a time. */
     while ( window < bmul->windows && !secp256k1_scalar_is_zero(&privkey) ) {
         sdigit = secp256k1_scalar_sdigit_single(&privkey, bmul->bits);
 
-        /* Zero windows have no representation in our precomputed table.    */
+        /* Zero windows have no representation in our precomputed table. */
         if ( sdigit != 0 ) {
             if ( sdigit < 0 ) {
-                /* Use the positive precomp index and negate the result.    */
+                /* Use the positive precomp index and negate the result. */
                 secp256k1_ge_from_storage(&window_value, &(bmul->precomp[window][ -(sdigit) - 1 ]));
                 secp256k1_ge_neg(&window_value, &window_value);
             } else {
@@ -300,12 +306,8 @@ static void secp256k1_ecmult_big(const secp256k1_ecmult_big_context* bmul, secp2
                 secp256k1_ge_from_storage(&window_value, &(bmul->precomp[window][ +(sdigit) - 1 ]));
             }
 
-            /* The first addition is replaced with a load.  */
-            if ( r->infinity ) {
-                secp256k1_gej_set_ge(r, &window_value);
-            } else {
-                secp256k1_gej_add_ge_var(r, r, &window_value, NULL);
-            }
+            /* The first addition is automatically replaced by a load when r = inf. */
+            secp256k1_gej_add_ge_var(r, r, &window_value, NULL);
         }
 
         window++;

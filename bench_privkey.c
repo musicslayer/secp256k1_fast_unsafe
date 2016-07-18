@@ -23,13 +23,17 @@ void secp256k1_pubkey_uncomp_to_comp(unsigned char *pubkey) {
 
 int main(int argc, char **argv) {
     // Number of iterations as 2^N
-    int iter_exponent = ( argc > 1 ? atoi(argv[1]) : 18 );
-    int iterations = (1 << iter_exponent);
+    unsigned int iter_exponent = ( argc > 1 ? atoi(argv[1]) : 18 );
+    unsigned int iterations = (1 << iter_exponent);
 
     unsigned int bmul_size = ( argc > 2 ? atoi(argv[2]) : 16 );
 
     struct timespec clock_start;
     double clock_diff;
+
+    printf("iterations = 2^%u (%u)\n", iter_exponent, iterations);
+    printf("bmul size  = %u\n", bmul_size);
+    printf("\n");
 
 
     // Initializing secp256k1 context
@@ -75,8 +79,6 @@ int main(int argc, char **argv) {
 
 
     // Actual benchmark loop
-    printf("iterations = 2^%d (%d)\n", iter_exponent, iterations);
-    printf("bmul size  = %u\n", bmul_size);
     clock_start = get_clock();
     for (size_t iter = 0; iter < iterations; iter++) {
         // Randomize a byte to ensure differing code paths
