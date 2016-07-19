@@ -59,68 +59,21 @@ void secp256k1_scratch_destroy(secp256k1_scratch* scr) {
 
 
 size_t secp256k1_ec_pubkey_create_serialized(const secp256k1_context *ctx, const secp256k1_ecmult_big_context *bmul, unsigned char *pubkey, const unsigned char *privkey, const unsigned int compressed) {
-    secp256k1_scalar s_privkey;
-    secp256k1_gej gej_pubkey;
-    secp256k1_ge ge_pubkey;
-    size_t dummy, out_keys;
-    size_t pubkey_size = ( compressed ? 35 : 64 );
+    /* Creating our own 1 element scratch structure. */
+    secp256k1_gej gej;
+    secp256k1_fe  fe_in, fe_out;
+    secp256k1_scratch scr = {1, &gej, &fe_in, &fe_out};
 
-    /* Argument checking. */
-    ARG_CHECK(ctx != NULL);
-    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
-
-    ARG_CHECK(pubkey  != NULL);
-
-    ARG_CHECK(privkey != NULL);
-
-
-    /* Blank all of the output, regardless of what happens.                 */
-    /* This marks all output keys as invalid until successfully created.    */
-    memset(pubkey, 0, sizeof(*pubkey) * pubkey_size);
-
-    out_keys = 0;
-
-    /* Convert private key to scalar form. */
-    secp256k1_scalar_set_b32(&s_privkey, privkey, NULL);
-
-    /* Reject the privkey if it's zero or has reduced to zero. */
-    if ( secp256k1_scalar_is_zero(&s_privkey) ) { return out_keys; }
-
-
-    /* Multiply the private key by the generator point. */
-    if ( bmul != NULL ) {
-        /* Multiplication using larger, faster, precomputed tables. */
-        secp256k1_ecmult_big(bmul, &gej_pubkey, &s_privkey);
-    } else {
-        /* Multiplication using default implementation. */
-        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &gej_pubkey, &s_privkey);
-    }
-
-    /* If the result is the point at infinity, the pubkey is invalid. */
-    if ( gej_pubkey.infinity ) { return out_keys; }
-
-
-    /* Convert the Jacobian public key to affine coordinates.               */
-    /* This computes the pubkey's Z coordinate inverse which is very slow,  */
-    /*   batching key generation consolidates multiple inversions into one. */
-    secp256k1_ge_set_gej(&ge_pubkey, &gej_pubkey);
-
-    /* Serialize the public key into the requested format. */
-    secp256k1_eckey_pubkey_serialize(&ge_pubkey, pubkey, &dummy, compressed);
-    out_keys++;
-
-
-    /* Return the number of successfully generated and serialized pubkeys. */
-    return out_keys;
+    /* Defer the actual work to _batch, no point repeating code. */
+    return secp256k1_ec_pubkey_create_serialized_batch(ctx, bmul, &scr, pubkey, privkey, 1, compressed);
 }
-
 
 
 size_t secp256k1_ec_pubkey_create_serialized_batch(const secp256k1_context *ctx, const secp256k1_ecmult_big_context *bmul, secp256k1_scratch *scr, unsigned char *pubkeys, const unsigned char *privkeys, const size_t key_count, const unsigned int compressed) {
     secp256k1_scalar s_privkey;
     secp256k1_ge ge_pubkey;
     size_t i, dummy, out_keys;
-    size_t pubkey_size = ( compressed ? 35 : 64 );
+    size_t pubkey_size = ( compressed ? 33 : 65 );
 
     /* Argument checking. */
     ARG_CHECK(ctx != NULL);
