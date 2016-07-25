@@ -1,4 +1,12 @@
-// Copyright (c) 2016 Llamasoft
+/**********************************************************************
+ * Copyright (c) 2016 Llamasoft                                       *
+ * Distributed under the MIT software license, see the accompanying   *
+ * file COPYING or http://www.opensource.org/licenses/mit-license.php.*
+ **********************************************************************/
+
+// Compile with:
+//   gcc -Wall -Wno-unused-function -O2 --std=c99 -march=native -I src/ -I ./ bench_privkey.c timer.c -lgmp -o bench_privkey
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,8 +66,8 @@ const unsigned char baseline_expected[65] = {
 
 
 int main(int argc, char **argv) {
-    unsigned int iter_exp   = ( argc > 1 ? atoi(argv[1]) : 14 );    // Number of iterations as 2^N
-    unsigned int bmul_size  = ( argc > 2 ? atoi(argv[2]) : 16 );    // ecmult_big window size in bits
+    unsigned int iter_exp   = ( argc > 1 ? atoi(argv[1]) : 16 );    // Number of iterations as 2^N
+    unsigned int bmul_size  = ( argc > 2 ? atoi(argv[2]) : 18 );    // ecmult_big window size in bits
     unsigned int batch_size = ( argc > 3 ? atoi(argv[3]) : 16 );    // ecmult_batch size in keys
 
     unsigned int iterations = (1 << iter_exp);
