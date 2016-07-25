@@ -94,7 +94,11 @@ int main(int argc, char **argv) {
     secp256k1_scratch *scr = secp256k1_scratch_create(ctx, batch_size);
 
 
-#ifdef VERIFY
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //                                Verification                                //
+    ////////////////////////////////////////////////////////////////////////////////
+
     size_t test_count = 1024;
     size_t expected_count;
     size_t actual_count;
@@ -200,8 +204,12 @@ int main(int argc, char **argv) {
     free(privkey); free(expected); free(actual);
     printf("Batched verification passed\n");
     printf("\n");
-#endif
 
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //                                 Benchmark                                  //
+    ////////////////////////////////////////////////////////////////////////////////
 
     unsigned char *privkeys = (unsigned char*)safe_calloc(batch_size, 32 * sizeof(unsigned char));
     unsigned char *pubkeys  = (unsigned char*)safe_calloc(batch_size, 65 * sizeof(unsigned char));
@@ -221,7 +229,8 @@ int main(int argc, char **argv) {
             rand_privkey(&privkeys[32 * b]);
         }
 
-        secp256k1_ec_pubkey_create_serialized_batch(ctx, bmul, scr, pubkeys, privkeys, batch_size, 0);
+        // Wrapped in if to prevent "ignoring return value" warning
+        if ( secp256k1_ec_pubkey_create_serialized_batch(ctx, bmul, scr, pubkeys, privkeys, batch_size, 0) );
     }
     double pubkey_time = get_clockdiff_s(clock_start);
     pubkey_time -= (privkey_time * batch_size);
@@ -233,27 +242,4 @@ int main(int argc, char **argv) {
     printf("pubkey/sec   = %12.2f\n", total_keys / pubkey_time);
     printf("\n");
     return 0;
-
-#if 0
-    // Actual benchmark loop
-    clock_start = get_clock();
-    for (size_t iter = 0; iter < iterations; iter++) {
-        // Randomize a byte to ensure differing code paths
-        privkey[ iter % 32 ] = rand() & 0xFF;
-        if ( !secp256k1_ec_pubkey_create_serialized(ctx, NULL, privkey, pubkey, 0) ) {
-            printf("key creation returned zero result");
-            break;
-        }
-    }
-    clock_diff = get_clockdiff_s(clock_start);
-
-
-    // Benchmark results
-    printf("pubkey total = %12.8f\n", clock_diff);
-    printf("pubkey avg   = %12.8f\n", clock_diff / iterations);
-    printf("pubkey/sec   = %12.2f\n", iterations / clock_diff);
-    printf("\n");
-
-    return 0;
-#endif
 }
