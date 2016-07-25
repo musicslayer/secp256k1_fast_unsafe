@@ -4,7 +4,7 @@
  * file COPYING or http://www.opensource.org/licenses/mit-license.php.*
  **********************************************************************/
 
-// Compile with:
+// After building secp256k1_fast_unsafe, compile benchmarks with:
 //   gcc -Wall -Wno-unused-function -O2 --std=c99 -march=native -I src/ -I ./ bench_privkey.c timer.c -lgmp -o bench_privkey
 
 
