@@ -133,8 +133,8 @@ secp256k1_ecmult_big_context* secp256k1_ecmult_big_create(const secp256k1_contex
 
 
     /* We won't be using these any more.    */
-    free(rtn->gej_temp);
-    free(rtn->z_ratio);
+    free(rtn->gej_temp); rtn->gej_temp = NULL;
+    free(rtn->z_ratio);  rtn->z_ratio  = NULL;
 
     return rtn;
 }
@@ -147,6 +147,7 @@ secp256k1_ecmult_big_context* secp256k1_ecmult_big_create(const secp256k1_contex
  */
 void secp256k1_ecmult_big_destroy(secp256k1_ecmult_big_context* bmul) {
     VERIFY_CHECK(bmul != NULL);
+    if ( bmul == NULL ) { return; }
 
     /* Just in case the caller tries to use after free. */
     *(unsigned int *)(&bmul->bits)    = 0;
@@ -154,14 +155,14 @@ void secp256k1_ecmult_big_destroy(secp256k1_ecmult_big_context* bmul) {
 
     if ( bmul->precomp != NULL ) {
         /* This was allocated with a single malloc, it will be freed with a single free. */
-        if ( bmul->precomp[0] != NULL ) { free(bmul->precomp[0]); }
+        if ( bmul->precomp[0] != NULL ) { free(bmul->precomp[0]); bmul->precomp[0] = NULL; }
 
-        free(bmul->precomp);
+        free(bmul->precomp); bmul->precomp = NULL;
     }
 
     /* These should already be freed, but just in case. */
-    if ( bmul->gej_temp != NULL ) { free(bmul->gej_temp); }
-    if ( bmul->z_ratio  != NULL ) { free(bmul->z_ratio ); }
+    if ( bmul->gej_temp != NULL ) { free(bmul->gej_temp); rtn->gej_temp = NULL; }
+    if ( bmul->z_ratio  != NULL ) { free(bmul->z_ratio ); rtn->z_ratio  = NULL; }
 
     free(bmul);
 }
