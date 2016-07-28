@@ -48,9 +48,9 @@ void secp256k1_scratch_destroy(secp256k1_scratch* scr) {
         /* Functions that use this scratch space will reject scratches that are undersized. */
         *(size_t *)&scr->size = 0;
 
-        if ( scr->gej    != NULL ) { free(scr->gej   ); }
-        if ( scr->fe_in  != NULL ) { free(scr->fe_in ); }
-        if ( scr->fe_out != NULL ) { free(scr->fe_out); }
+        if ( scr->gej    != NULL ) { free(scr->gej   ); scr->gej    = NULL; }
+        if ( scr->fe_in  != NULL ) { free(scr->fe_in ); scr->fe_in  = NULL; }
+        if ( scr->fe_out != NULL ) { free(scr->fe_out); scr->fe_out = NULL; }
 
         free(scr);
     }

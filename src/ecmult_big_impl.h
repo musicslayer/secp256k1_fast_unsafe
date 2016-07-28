@@ -161,8 +161,8 @@ void secp256k1_ecmult_big_destroy(secp256k1_ecmult_big_context* bmul) {
     }
 
     /* These should already be freed, but just in case. */
-    if ( bmul->gej_temp != NULL ) { free(bmul->gej_temp); rtn->gej_temp = NULL; }
-    if ( bmul->z_ratio  != NULL ) { free(bmul->z_ratio ); rtn->z_ratio  = NULL; }
+    if ( bmul->gej_temp != NULL ) { free(bmul->gej_temp); bmul->gej_temp = NULL; }
+    if ( bmul->z_ratio  != NULL ) { free(bmul->z_ratio ); bmul->z_ratio  = NULL; }
 
     free(bmul);
 }
