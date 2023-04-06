@@ -10,6 +10,13 @@
 #include "scalar.h"
 #include "group.h"
 
+#if ECMULT_GEN_PREC_BITS != 2 && ECMULT_GEN_PREC_BITS != 4 && ECMULT_GEN_PREC_BITS != 8
+#  error "Set ECMULT_GEN_PREC_BITS to 2, 4 or 8."
+#endif
+#define ECMULT_GEN_PREC_B ECMULT_GEN_PREC_BITS
+#define ECMULT_GEN_PREC_G (1 << ECMULT_GEN_PREC_B)
+#define ECMULT_GEN_PREC_N (256 / ECMULT_GEN_PREC_B)
+
 typedef struct {
     /* For accelerating the computation of a*G:
      * To harden against timing attacks, use the following mechanism:
@@ -30,6 +37,7 @@ typedef struct {
 
 static void secp256k1_ecmult_gen_context_init(secp256k1_ecmult_gen_context* ctx);
 static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context* ctx, const secp256k1_callback* cb);
+static void secp256k1_ecmult_gen_context_build_prealloc(secp256k1_ecmult_gen_context* ctx, void **prealloc);
 static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst,
                                                const secp256k1_ecmult_gen_context* src, const secp256k1_callback* cb);
 static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context* ctx);

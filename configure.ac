@@ -141,6 +141,23 @@ AC_ARG_WITH([scalar], [AS_HELP_STRING([--with-scalar=64bit|32bit|auto],
 AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto]
 [Specify assembly optimizations to use. Default is auto (experimental: arm)])],[req_asm=$withval], [req_asm=auto])
 
+AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
+[window size for ecmult precomputation for verification, specified as integer in range [2..24].]
+[Larger values result in possibly better performance at the cost of an exponentially larger precomputed table.]
+[The table will store 2^(SIZE-2) * 64 bytes of data but can be larger in memory due to platform-specific padding and alignment.]
+[If the endomorphism optimization is enabled, two tables of this size are used instead of only one.]
+["auto" is a reasonable setting for desktop machines (currently 15). [default=auto]]
+)],
+[req_ecmult_window=$withval], [req_ecmult_window=auto])
+
+AC_ARG_WITH([ecmult-gen-precision], [AS_HELP_STRING([--with-ecmult-gen-precision=2|4|8|auto],
+[Precision bits to tune the precomputed table size for signing.]
+[The size of the table is 32kB for 2 bits, 64kB for 4 bits, 512kB for 8 bits of precision.]
+[A larger table size usually results in possible faster signing.]
+["auto" is a reasonable setting for desktop machines (currently 4). [default=auto]]
+)],
+[req_ecmult_gen_precision=$withval], [req_ecmult_gen_precision=auto])
+
 AC_CHECK_TYPES([__int128])
 
 AC_MSG_CHECKING([for __builtin_expect])
@@ -317,6 +334,44 @@ case $set_scalar in
   ;;
 *)
   AC_MSG_ERROR([invalid scalar implementation])
+  ;;
+esac
+
+#set ecmult window size
+if test x"$req_ecmult_window" = x"auto"; then
+  set_ecmult_window=15
+else
+  set_ecmult_window=$req_ecmult_window
+fi
+
+error_window_size=['window size for ecmult precomputation not an integer in range [2..24] or "auto"']
+case $set_ecmult_window in
+''|*[[!0-9]]*)
+  # no valid integer
+  AC_MSG_ERROR($error_window_size)
+  ;;
+*)
+  if test "$set_ecmult_window" -lt 2 -o "$set_ecmult_window" -gt 24 ; then
+    # not in range
+    AC_MSG_ERROR($error_window_size)
+  fi
+  AC_DEFINE_UNQUOTED(ECMULT_WINDOW_SIZE, $set_ecmult_window, [Set window size for ecmult precomputation])
+  ;;
+esac
+
+#set ecmult gen precision
+if test x"$req_ecmult_gen_precision" = x"auto"; then
+  set_ecmult_gen_precision=4
+else
+  set_ecmult_gen_precision=$req_ecmult_gen_precision
+fi
+
+case $set_ecmult_gen_precision in
+2|4|8)
+  AC_DEFINE_UNQUOTED(ECMULT_GEN_PREC_BITS, $set_ecmult_gen_precision, [Set ecmult gen precision bits])
+  ;;
+*)
+  AC_MSG_ERROR(['ecmult gen precision not 2, 4, 8 or "auto"'])
   ;;
 esac
 

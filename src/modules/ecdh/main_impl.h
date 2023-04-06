@@ -51,4 +51,42 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *result, const se
     return ret;
 }
 
+int secp256k1_ecdh_arg6(const secp256k1_context* ctx, unsigned char *output, const secp256k1_pubkey *point, const unsigned char *scalar, secp256k1_ecdh_hash_function hashfp, void *data) {
+    int ret = 0;
+    int overflow = 0;
+    secp256k1_gej res;
+    secp256k1_ge pt;
+    secp256k1_scalar s;
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(output != NULL);
+    ARG_CHECK(point != NULL);
+    ARG_CHECK(scalar != NULL);
+    if (hashfp == NULL) {
+        hashfp = secp256k1_ecdh_hash_function_default;
+    }
+
+    secp256k1_pubkey_load(ctx, &pt, point);
+    secp256k1_scalar_set_b32(&s, scalar, &overflow);
+    if (overflow || secp256k1_scalar_is_zero(&s)) {
+        ret = 0;
+    } else {
+        unsigned char x[32];
+        unsigned char y[32];
+
+        secp256k1_ecmult_const(&res, &pt, &s, 256);
+        secp256k1_ge_set_gej(&pt, &res);
+
+        /* Compute a hash of the point */
+        secp256k1_fe_normalize(&pt.x);
+        secp256k1_fe_normalize(&pt.y);
+        secp256k1_fe_get_b32(x, &pt.x);
+        secp256k1_fe_get_b32(y, &pt.y);
+
+        ret = hashfp(output, x, y, data);
+    }
+
+    secp256k1_scalar_clear(&s);
+    return ret;
+}
+
 #endif
